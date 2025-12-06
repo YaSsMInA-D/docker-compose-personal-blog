@@ -1,74 +1,103 @@
+# Personal Blog 
 
+##  Overview
+This project demonstrates the evolution of a Django blog development through 3 stages:
+1. **Development** → Django runserver
+2. **Production Stage 1** → Gunicorn only  
+3. **Production Stage 2** → Gunicorn + Nginx
 
-# Development Stage - Docker Compose Personal Blog
+---
 
-## Configuration
-- **Web Server**: Django development server (runserver)
+## Stage 1: Development Environment
 
-## Files:
-- `Dockerfile` - Python with development dependencies
-- `docker-compose.yml` - Single service configuration
-- `requirements.txt` - Django + development packages
-
-## How to run:
-
-docker-compose build
-docker-compose up
-
-
-### PROD STAGE 1 
-
-## Objective
-Upgrade from development server to production WSGI server (Gunicorn)
-
-## Changes from Development:
--  Removed django-browser-reload (development only)
--  Replaced `runserver` with `gunicorn`
--  Set DEBUG=0 for production
--  Static files collected during build
-
-## Configuration:
-- **Web Server**: Gunicorn WSGI server
+### Configuration:
+- **Server**: Django development server (`runserver`)
 - **Port**: 8000
-- **Workers**: Default Gunicorn configuration
-
-## Files changed:
-- `requirements.txt` - Removed development packages
-- `Dockerfile` - Added collectstatic, changed CMD to gunicorn
-- `docker-compose.yml` - Updated command and environment
-
-## How to run:
-
-docker-compose build
-docker-compose up
+- **DEBUG**: Enabled (DEBUG=1)
 
 
-### For PROD STAGE 2 
+### Files:
+```yaml
+# docker-compose.yml (Development)
+services:
+  web:
+    build: .
+    command: python manage.py runserver 0.0.0.0:8000
+    ports:
+      - "8000:8000"
+    environment:
+      - DEBUG=1
 
-## Objective
-Full production deployment with reverse proxy and static file serving
 
-1. **Nginx Container** (port 80)
-   - Reverse proxy
-   - Static file serving
-   - Security headers
 
-2. **Django Container** (port 8000 internal)
-   - Gunicorn WSGI server
-   - Application logic
+### Problems Encountered:
 
-## Configuration:
- **External Access**: Port 80 via Nginx
- **Static Files**: Served directly by Nginx
- **Media Files**: Served by Nginx
- **Application**: Proxied to Gunicorn
+ - No worker processes - Can't handle concurrent requests
+ - No security features 
 
-## New Files:
-- `default.conf` - Nginx configuration
-- Updated `docker-compose.yml` with nginx service
 
-## How to run:
 
+  *** Stage 2: Production Stage 1 - Gunicorn Only
+
+Changes from Development:
+
+---Removed django-browser-reload (development dependency)
+
+---Replaced runserver with gunicorn
+
+---Disabled DEBUG (DEBUG=0)
+
+ ---Added collectstatic to Dockerfile
+
+
+*** Configuration:
+
+Server: Gunicorn WSGI 
+
+Files Changed:
+
+# Dockerfile changes
+CMD ["gunicorn", "personalblog.wsgi:application", "--bind", "0.0.0.0:8000"]
+
+### Problems Encountered:
+
+-Direct exposure to internet - No reverse proxy for security
+
+- Error during build: ModuleNotFoundError: No module named 'django_browser_reload'
+
+   Solution Applied:
+--- Removed django-browser-reload from requirements.txt and INSTALLED_APPS
+
+
+
+***Stage 3: Production Stage 2 - Gunicorn + Nginx
+
+Changes from Production Stage 1:
+
+ - Added Nginx as reverse proxy
+
+ -Nginx serves static files directly
+
+- Port 80 for external access
+
+
+
+**Benefits Achieved:
+
+--- Efficient static file serving - Nginx is optimized for static content
+
+--- Reverse proxy security - Application not directly exposed
+
+---Load balancing ready - Can add more workers
+
+---Better performance with caching
+
+-- Port 80 standard - No need to specify port in URL
+
+
+### Commands That i used:**
+
+docker-compose down
 docker-compose build
 docker-compose up
 
